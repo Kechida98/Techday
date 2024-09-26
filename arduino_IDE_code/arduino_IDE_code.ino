@@ -1,7 +1,7 @@
 #include <WiFi.h>
 const char *ssid = "";
 const char *pass = "";
-wrfwojlfwognekngdkfngkdngdkjngdnk
+
 const int ledPin = 18;
 
 void setup() {
