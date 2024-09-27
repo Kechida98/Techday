@@ -54,12 +54,24 @@ void setup() {
 void callback(char *topic, byte *payload, unsigned int length) {
   Serial.print("Message arrived in topic: ");
   Serial.println(topic);
-  Serial.print("Message:");
+  
+  // raw payload printing för felsökning 
+  // Serial.print("Raw mesage:");
+  //  for (int i = 0; i < length; i++) {
+  //     Serial.print((char)payload[i]);
+  //     Serial.print(" [");
+  //     Serial.print((int)payload[i]);  // Print the ASCII value of each character
+  //     Serial.print("] ");
+  // }
+  // Serial.println();
 
-  String message;
+  String message = "";
   for (int i = 0; i < length; i++) {
         message += (char) payload[i];
   }
+
+  message.trim(); // tar bort spaces nl etc
+
   Serial.println(message);
   Serial.println("-----------------------");
 
