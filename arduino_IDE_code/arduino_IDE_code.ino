@@ -1,6 +1,8 @@
 #include <WiFi.h>
-const char *ssid = "TN-WH2983";
-const char *pass = "SyufjufDeub5";
+#include <PubSubClient.h>
+
+const char *ssid = "Zip_Guest";
+const char *pass = "Bondvagen46!";
 
 const int ledPin = 18;
 
@@ -29,10 +31,12 @@ void setup() {
   }
   Serial.println("Connected to the Wi-fi network");
 
+
   //connecting to a mqtt broker
   client.setServer(mqtt_broker, mqtt_port);
+  client.setCallback(callback);
   while(!client.connected()){
-    String client_id = "mqttx_sef0d0";
+    String client_id = "mqttx_cc626830";
     client_id +=String(WiFi.macAddress());
     Serial.printf("The client %s is connecting to the MQTT broker\n", client_id.c_str());
     if(client.connect(client_id.c_str(), mqtt_username, mqtt_password)){
