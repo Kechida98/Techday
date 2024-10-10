@@ -1,91 +1,33 @@
-#include <WiFi.h>
-#include <PubSubClient.h>
+#include "HX711.h"
+#include "soc/rtc.h"
+const int LOADCELL_DOUT_PIN = 4;
+const int LOADCELL_SCK_PIN = 19;
 
-const char *ssid = "Zip_Guest";
-const char *pass = "Bondvagen46!";
-
-const int ledPin = 18;
-
-//MQTT BROKER CREDENTIALS
-const char *mqtt_broker = "broker.emqx.io";
-const int mqtt_port = 1883;
-const char *topic = "emqx/esp32/led";
-const char *mqtt_username = "emqx";
-const char *mqtt_password = "123abc";
-
-WiFiClient espClient;
-PubSubClient client(espClient);
+HX711 scale;
 
 void setup() {
   Serial.begin(115200);
 
-  //sätter led pin till output
-  pinMode(ledPin, OUTPUT);
+  //RTC if the freq for esp is to fast.
 
-  Serial.println("Starting LED control...");
-
-  WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("connecting to wifi...");
-  }
-  Serial.println("Connected to the Wi-fi network");
-
-
-  //connecting to a mqtt broker
-  client.setServer(mqtt_broker, mqtt_port);
-  client.setCallback(callback);
-  while (!client.connected()) {
-    String client_id = "mqttx_cc626830";
-    client_id += String(WiFi.macAddress());
-    Serial.printf("The client %s is connecting to the MQTT broker\n", client_id.c_str());
-    if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
-      Serial.println("EMQX MQTT broker connected");
-    } else {
-      Serial.print("Failed with state");
-      Serial.print(client.state());
-      delay(2000);
-    }
-  }
-  client.publish(topic, "HI I'm esp32");
-  client.subscribe(topic);
-}
-
-void callback(char *topic, byte *payload, unsigned int length) {
-  Serial.print("Message arrived in topic: ");
-  Serial.println(topic);
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
   
-  // raw payload printing för felsökning 
-  // Serial.print("Raw mesage:");
-  //  for (int i = 0; i < length; i++) {
-  //     Serial.print((char)payload[i]);
-  //     Serial.print(" [");
-  //     Serial.print((int)payload[i]);  // Print the ASCII value of each character
-  //     Serial.print("] ");
-  // }
-  // Serial.println();
-
-  String message = "";
-  for (int i = 0; i < length; i++) {
-        message += (char) payload[i];
-  }
-
-  message.trim(); // tar bort spaces nl etc
-
-  Serial.println(message);
-  Serial.println("-----------------------");
-
-  if (message.equalsIgnoreCase("on")) {
-    digitalWrite(ledPin, HIGH);
-    Serial.println("LED turned ON");
-  } else if (message.equalsIgnoreCase("off")) {
-    digitalWrite(ledPin, LOW);
-    Serial.println("LED turned OFF");
-  } else {
-    Serial.println("Unknown command");
-  }
 }
-
 void loop() {
-  client.loop();
+  if(scale.is_ready()){
+    scale.set_scale();
+    Serial.println("Tare.. remove any weights from scale");
+    delay(5000);
+    scale.tare();
+    Serial.println("Tare done");
+    Serial.print("Place a known weight on the scale");
+    delay(5000);
+    long reading = scale.get_units(10);
+    Serial.print("Result: ");
+    Serial.println(reading);
+  }else{
+    Serial.println("HX711 NOT FOUND.");
+  }
+  delay(1000);
 }
+//Callobration är reading/vikten vi vet och reading det kommer vi få när vi gör Serial.println(reading);
