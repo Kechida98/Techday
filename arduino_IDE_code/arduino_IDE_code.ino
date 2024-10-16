@@ -1,13 +1,29 @@
 #include "HX711.h"//This is the libary we are using for all our funtions and they are
                   //explained more in libary.
 #include "soc/rtc.h"
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+const char *ssid = "TN-WH2983";
+const char *pass = "SyufjufDeub5";
+
 const int LOADCELL_DOUT_PIN = 4;
 const int LOADCELL_SCK_PIN = 19;
+
+const char *mqtt_broker = "broker.emqx.io";
+const int mqtt_port = 1883;
+const char *mqtt_topic = "esp32/scale";
+const char *mqtt_username = "emqx";
+const char *mqtt_password = "123abc";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 HX711 scale;
 
 float previousWeight = 0;
 float threshold = 1.0;
+float callobration = 1103.828;
 
 void setup() {
   Serial.begin(115200);
@@ -34,7 +50,7 @@ void setup() {
   Serial.println(scale.get_units(5),1);// print the average of 5 readings from the ADC minus tare weight (not set) divided
             // by the SCALE parameter (not set yet)
 
-  scale.set_scale(1126.5);//change this callabration to ur own value and callabariation = reading/weight.
+  scale.set_scale(callobration);//change this callabration to ur own value and callabariation = reading/weight.
   
   scale.tare();// reset the scale to 0
 
@@ -54,6 +70,29 @@ void setup() {
             // by the SCALE parameter set with set_scale
 
   Serial.println("Readings:");  
+
+  //Connection to wifi
+  WiFi.begin(ssid,pass);
+  while (WiFi.status() !=WL_CONNECTED){
+    delay(1000);
+    Serial.println("connecting to wifi...");
+  }
+   Serial.println("Connected to the Wi-fi network");
+
+   //Connection to mqtt broker
+   client.setServer(mqtt_broker,mqtt_port);
+   while(!client.connected()){
+    String client_id = "";
+    client_id += String(WiFi.macAddress());
+    Serial.printf("The client %s is connecting to the MQTT broker",client_id.c_str());
+    if(client.connect(client_id.c_str(),mqtt_username,mqtt_password)){
+      Serial.println("Connecting to the EMQX MQTT broker.");
+    }else{
+      Serial.print("Failed to connect, state: ");
+      Serial.print(client.state());
+      delay(2000);
+    }
+   }
 }
 void loop() {
   //Raw reeading value because reading-tare/factor and we dont have factor,
@@ -88,9 +127,13 @@ void loop() {
     Serial.print(previousWeight, 1);  // same as line 83
     Serial.println(" g");
 
+    String weightstr = String(currentWeight,1) + " g";
+    client.publish(mqtt_topic,weightstr.c_str());
+
     // Update the previous weight to currentWeight.
     previousWeight = currentWeight;
   }
+  client.loop();
 
   scale.power_down();  // Put the ADC in sleep mode to save power
   delay(5000);  // Wait for 5 seconds
