@@ -4,10 +4,10 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-const char *ssid = "TN-WH2983";
-const char *pass = "SyufjufDeub5";
+const char *ssid = "Zip_Guest";
+const char *pass = "Bondvagen46!";
 
-const int LOADCELL_DOUT_PIN = 4;
+const int LOADCELL_DOUT_PIN = 20;
 const int LOADCELL_SCK_PIN = 19;
 
 const char *mqtt_broker = "broker.emqx.io";
@@ -23,7 +23,7 @@ HX711 scale;
 
 float previousWeight = 0;
 float threshold = 1.0;
-float callobration = 1103.828;
+float calibration = 1090;
 
 void setup() {
   Serial.begin(115200);
@@ -50,7 +50,7 @@ void setup() {
   Serial.println(scale.get_units(5),1);// print the average of 5 readings from the ADC minus tare weight (not set) divided
             // by the SCALE parameter (not set yet)
 
-  scale.set_scale(callobration);//change this callabration to ur own value and callabariation = reading/weight.
+  scale.set_scale(calibration);//change this calibration to ur own value and callabariation = reading/weight.
   
   scale.tare();// reset the scale to 0
 
@@ -84,9 +84,9 @@ void setup() {
    while(!client.connected()){
     String client_id = "";
     client_id += String(WiFi.macAddress());
-    Serial.printf("The client %s is connecting to the MQTT broker",client_id.c_str());
+    Serial.printf("The client %s is connecting to the MQTT broker\n",client_id.c_str());
     if(client.connect(client_id.c_str(),mqtt_username,mqtt_password)){
-      Serial.println("Connecting to the EMQX MQTT broker.");
+      Serial.println("Connected to the EMQX MQTT broker.");
     }else{
       Serial.print("Failed to connect, state: ");
       Serial.print(client.state());
