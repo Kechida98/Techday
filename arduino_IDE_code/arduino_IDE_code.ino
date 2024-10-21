@@ -23,7 +23,11 @@ HX711 scale;
 
 float previousWeight = 0;
 float threshold = 1.0;
+<<<<<<< Updated upstream
 float calibration = 1090;
+=======
+float callobration = 1100.38987;
+>>>>>>> Stashed changes
 
 void setup() {
   Serial.begin(115200);
@@ -52,6 +56,7 @@ void setup() {
 
   scale.set_scale(calibration);//change this calibration to ur own value and callabariation = reading/weight.
   
+  delay(1000);
   scale.tare();// reset the scale to 0
 
   Serial.print("After setting up the scale");
@@ -117,7 +122,13 @@ void loop() {
   delay(1000);*/
 
  // Get the current weight reading
-  float currentWeight = scale.get_units(10);  // Average of 10 readings for stability
+  float currentWeight = scale.get_units(20);  // Average of 10 readings for stability
+
+   if (currentWeight < 0) {
+    currentWeight = 0;
+  } else if (currentWeight > 1000) {
+    currentWeight = 1000;
+  }
 
   // Check if currentweight minus previousweight is greater then threshold.
   if (abs(currentWeight - previousWeight) > threshold) {
@@ -127,8 +138,8 @@ void loop() {
     Serial.print(previousWeight, 1);  // same as line 83
     Serial.println(" g");
 
-    String weightstr = String(currentWeight,1) + " g";
-    client.publish(mqtt_topic,weightstr.c_str());
+    int weightInt = (int)currentWeight;
+    client.publish(mqtt_topic,String(weightInt).c_str());
 
     // Update the previous weight to currentWeight.
     previousWeight = currentWeight;
