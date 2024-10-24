@@ -12,7 +12,8 @@ const int LOADCELL_SCK_PIN = 19;
 
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
-const char *mqtt_topic = "esp32/scale";
+const char *mqtt_topic_weight = "esp32/scale";
+const char *mqtt_topic_distance = "esp32/distance";
 const char *mqtt_username = "emqx";
 const char *mqtt_password = "123abc";
 
@@ -155,6 +156,8 @@ void loop() {
     Serial.print("Distance change detected. Distance (cm):");
     Serial.println(distanceCm,1);
 
+    client.publish(mqtt_topic_distance,String(distanceCm).c_str());
+
     previousDistance = distanceCm;
     }
   }
@@ -180,7 +183,7 @@ void loop() {
     Serial.println(" g");
 
     int weightInt = (int)currentWeight;
-    client.publish(mqtt_topic,String(weightInt).c_str());
+    client.publish(mqtt_topic_weight,String(weightInt).c_str());
 
     // Update the previous weight to currentWeight.
     previousWeight = currentWeight;
