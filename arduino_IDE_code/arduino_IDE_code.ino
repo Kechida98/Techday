@@ -33,10 +33,10 @@ const int echoPin = 8;
 long duration;
 float distanceCm;
 float previousDistance = 0;
-float distanceThreshold = 0.5;
+float distanceThreshold = 1.0;
 
 unsigned long previousMillisScale = 0;
-unsigned long previousMillisDistande = 0;
+unsigned long previousMillisUltra = 0;
 const long ultrasonicInterval = 1000;
 const long scaleInterval = 5000;
 
@@ -133,7 +133,11 @@ void loop() {
     Serial.println("HX711 NOT FOUND.");
   }
   delay(1000);*/
+  unsigned long currentMillis = millis();
   
+  if(currentMillis - previousMillisUltra >= ultrasonicInterval){
+    previousMillisUltra = currentMillis;
+    
   //Ultra sonic sensor measurment.
   digitalWrite(trigPin,LOW);
   delayMicroseconds(2);
@@ -152,7 +156,11 @@ void loop() {
     Serial.println(distanceCm,1);
 
     previousDistance = distanceCm;
+    }
   }
+
+  if(currentMillis - previousMillisScale >= scaleInterval){
+    previousMillisScale = currentMillis;
 
  // Get the current weight reading
   float currentWeight = scale.get_units(20);  // Average of 10 readings for stability
@@ -176,11 +184,11 @@ void loop() {
 
     // Update the previous weight to currentWeight.
     previousWeight = currentWeight;
+    }
+    scale.power_down();  // Put the ADC in sleep mode to save power
+    delay(5000);  // Wait for 5 seconds
+    scale.power_up(); 
   }
   client.loop();
-
-  scale.power_down();  // Put the ADC in sleep mode to save power
-  delay(5000);  // Wait for 5 seconds
-  scale.power_up();  // Power up the ADC
 }
 //Callobration är reading/vikten vi vet och reading det kommer vi få när vi gör Serial.println(reading);
