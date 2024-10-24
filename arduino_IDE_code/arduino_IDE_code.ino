@@ -32,9 +32,11 @@ const int echoPin = 8;
 
 long duration;
 float distanceCm;
+float previousDistance = 0;
+float distanceThreshold = 0.5;
 
 unsigned long previousMillisScale = 0;
-unsigned long previousMillisDistande =0;
+unsigned long previousMillisDistande = 0;
 const long ultrasonicInterval = 1000;
 const long scaleInterval = 5000;
 
@@ -141,12 +143,16 @@ void loop() {
 
   // Reads the echoPin,returns the sound wave travel time in microseconds
   duration = pulseIn(echoPin, HIGH);
-   
   // Calculate the distance
   distanceCm = duration * SOUND_SPEED/2;
 
-  Serial.print("Distance (cm):");
-  Serial.println(distanceCm);
+  //check if distance has changed above the threshold.
+  if(abs(distanceCm - previousDistance) > distanceThreshold){
+    Serial.print("Distance change detected. Distance (cm):");
+    Serial.println(distanceCm,1);
+
+    previousDistance = distanceCm;
+  }
 
  // Get the current weight reading
   float currentWeight = scale.get_units(20);  // Average of 10 readings for stability
