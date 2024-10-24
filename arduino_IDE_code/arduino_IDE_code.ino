@@ -9,6 +9,8 @@ const char *pass = "Bondvagen46!";
 
 const int LOADCELL_DOUT_PIN = 20;
 const int LOADCELL_SCK_PIN = 19;
+const int TRIG_PIN = 7;
+const int ECHO_PIN = 8;
 
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
@@ -18,16 +20,17 @@ const char *mqtt_password = "123abc";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-
 HX711 scale;
 
 float previousWeight = 0;
 float threshold = 1.0;
-<<<<<<< Updated upstream
 float calibration = 1090;
-=======
-float callobration = 1100.38987;
->>>>>>> Stashed changes
+
+unsigned long previousMillisScale = 0;
+unsigned long previousMillisDistance = 0;
+const long intervalScale = 2000; //scale reads for 2 sec
+const long intervalDistance = 1000;
+
 
 void setup() {
   Serial.begin(115200);
