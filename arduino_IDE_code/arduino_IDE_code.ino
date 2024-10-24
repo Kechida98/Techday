@@ -4,13 +4,11 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-const char *ssid = "Zip_Guest";
-const char *pass = "Bondvagen46!";
+const char *ssid = "TN-WH2983";
+const char *pass = "SyufjufDeub5";
 
-const int LOADCELL_DOUT_PIN = 20;
+const int LOADCELL_DOUT_PIN = 4;
 const int LOADCELL_SCK_PIN = 19;
-const int TRIG_PIN = 7;
-const int ECHO_PIN = 8;
 
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
@@ -20,17 +18,25 @@ const char *mqtt_password = "123abc";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+
 HX711 scale;
 
 float previousWeight = 0;
 float threshold = 1.0;
-float calibration = 1090;
+float calibration = 1100.38987;
+
+const int trigPin = 7;
+const int echoPin = 8;
+
+#define SOUND_SPEED 0.034
+
+long duration;
+float distanceCm;
 
 unsigned long previousMillisScale = 0;
-unsigned long previousMillisDistance = 0;
-const long intervalScale = 2000; //scale reads for 2 sec
-const long intervalDistance = 1000;
-
+unsigned long previousMillisDistande =0;
+const long ultrasonicInterval = 1000;
+const long scaleInterval = 5000;
 
 void setup() {
   Serial.begin(115200);
@@ -57,7 +63,7 @@ void setup() {
   Serial.println(scale.get_units(5),1);// print the average of 5 readings from the ADC minus tare weight (not set) divided
             // by the SCALE parameter (not set yet)
 
-  scale.set_scale(calibration);//change this calibration to ur own value and callabariation = reading/weight.
+  scale.set_scale(calibration);//change this callabration to ur own value and callabariation = reading/weight.
   
   delay(1000);
   scale.tare();// reset the scale to 0
@@ -101,6 +107,8 @@ void setup() {
       delay(2000);
     }
    }
+   pinMode(trigPin,OUTPUT);
+   pinMode(trigPin,INPUT);
 }
 void loop() {
   //Raw reeading value because reading-tare/factor and we dont have factor,
