@@ -26,8 +26,8 @@ float previousWeight = 0;
 float threshold = 1.0;
 float calibration = 1100.38987;
 
-const int trigPin = 7;
-const int echoPin = 8;
+const int trigPin = 18;
+const int echoPin = 5;
 
 #define SOUND_SPEED 0.034
 
@@ -38,8 +38,11 @@ float distanceThreshold = 1.0;
 
 unsigned long previousMillisScale = 0;
 unsigned long previousMillisUltra = 0;
+unsigned long stableStartTime =0;//timer to check stability
+bool stable = false;//flag
 const long ultrasonicInterval = 1000;
-const long scaleInterval = 5000;
+const long scaleInterval = 10000;
+const long stabilityTime = 3000;//3 secounds of stable reading
 
 void setup() {
   Serial.begin(115200);
@@ -111,7 +114,7 @@ void setup() {
     }
    }
    pinMode(trigPin,OUTPUT);
-   pinMode(trigPin,INPUT);
+   pinMode(echoPin,INPUT);
 }
 void loop() {
   //Raw reeading value because reading-tare/factor and we dont have factor,
@@ -135,30 +138,37 @@ void loop() {
   }
   delay(1000);*/
   unsigned long currentMillis = millis();
-  
+
+  // Handle distance publishing
   if(currentMillis - previousMillisUltra >= ultrasonicInterval){
     previousMillisUltra = currentMillis;
+
+    // Send a trigger pulse to the ultrasonic sensor
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    duration = pulseIn(echoPin,HIGH,50000);//50ms timeout
+
+    //Debugging: printing the raw duration to check if any signal is detected
+    Serial.print("Echo Duration (us): ");
+    Serial.println(duration);
     
-  //Ultra sonic sensor measurment.
-  digitalWrite(trigPin,LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin,HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin,LOW);
-
-  // Reads the echoPin,returns the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
-  // Calculate the distance
-  distanceCm = duration * SOUND_SPEED/2;
-
-  //check if distance has changed above the threshold.
-  if(abs(distanceCm - previousDistance) > distanceThreshold){
-    Serial.print("Distance change detected. Distance (cm):");
-    Serial.println(distanceCm,1);
-
-    client.publish(mqtt_topic_distance,String(distanceCm).c_str());
-
-    previousDistance = distanceCm;
+    if (duration > 0) { //Only caluculate distance if duration is not zero or less
+        distanceCm = duration * SOUND_SPEED / 2;
+        
+        if (abs(distanceCm - previousDistance) > distanceThreshold) {
+            Serial.print("Distance change detected. Distance (cm): ");
+            Serial.println(distanceCm, 1);
+            
+            // Convert distance to string and publish
+            client.publish(mqtt_topic_distance, String(distanceCm,1).c_str());
+            previousDistance = distanceCm;
+        }
+    } else {
+        Serial.println("No echo detected (timeout).");
     }
   }
 
@@ -166,7 +176,7 @@ void loop() {
     previousMillisScale = currentMillis;
 
  // Get the current weight reading
-  float currentWeight = scale.get_units(20);  // Average of 10 readings for stability
+  float currentWeight = scale.get_units(40);  // Average of 40 readings for stability
 
    if (currentWeight < 0) {
     currentWeight = 0;
@@ -174,20 +184,32 @@ void loop() {
     currentWeight = 1000;
   }
 
-  // Check if currentweight minus previousweight is greater then threshold.
-  if (abs(currentWeight - previousWeight) > threshold) {
-    Serial.print("Change detected. Weight:");
-    Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
-    Serial.print(" g | Previous weight: "); 
-    Serial.print(previousWeight, 1);  // same as line 83
-    Serial.println(" g");
+  // Check if weight is stable within the threshold.
+  if (abs(currentWeight - previousWeight) < threshold) {
 
-    int weightInt = (int)currentWeight;
-    client.publish(mqtt_topic_weight,String(weightInt).c_str());
+    if (!stable){
+      stableStartTime= currentMillis;
+      stable = true;
+    }
+
+    //iF stable and current millis-stablestarttime is >= to stabilityTime
+    if (stable &&(currentMillis - stableStartTime >= stabilityTime)){
+      Serial.print("Change detected. Weight:");
+      Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
+      Serial.print(" g | Previous weight: "); 
+      Serial.print(previousWeight, 1);  // same as line 83
+      Serial.println(" g");
+
+      client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
 
     // Update the previous weight to currentWeight.
-    previousWeight = currentWeight;
+      previousWeight = currentWeight;
+      stable = false;//reset stability flag after publishing
     }
+  }else{
+    //Reset stability if weighc changes
+    stable = false;
+  }
     scale.power_down();  // Put the ADC in sleep mode to save power
     delay(5000);  // Wait for 5 seconds
     scale.power_up(); 
