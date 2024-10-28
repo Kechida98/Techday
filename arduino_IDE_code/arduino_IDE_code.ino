@@ -38,11 +38,8 @@ float distanceThreshold = 1.0;
 
 unsigned long previousMillisScale = 0;
 unsigned long previousMillisUltra = 0;
-unsigned long stableStartTime =0;//timer to check stability
-bool stable = false;//flag
 const long ultrasonicInterval = 1000;
 const long scaleInterval = 10000;
-const long stabilityTime = 3000;//3 secounds of stable reading
 
 void setup() {
   Serial.begin(115200);
@@ -184,32 +181,19 @@ void loop() {
     currentWeight = 1000;
   }
 
-  // Check if weight is stable within the threshold.
-  if (abs(currentWeight - previousWeight) < threshold) {
+  // Check if currentweight minus previousweight is greater then threshold.
+  if (abs(currentWeight - previousWeight) > threshold) {
+    Serial.print("Change detected. Weight:");
+    Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
+    Serial.print(" g | Previous weight: "); 
+    Serial.print(previousWeight, 1);  // same as line 83
+    Serial.println(" g");
 
-    if (!stable){
-      stableStartTime= currentMillis;
-      stable = true;
-    }
-
-    //iF stable and current millis-stablestarttime is >= to stabilityTime
-    if (stable &&(currentMillis - stableStartTime >= stabilityTime)){
-      Serial.print("Change detected. Weight:");
-      Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
-      Serial.print(" g | Previous weight: "); 
-      Serial.print(previousWeight, 1);  // same as line 83
-      Serial.println(" g");
-
-      client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
+    client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
 
     // Update the previous weight to currentWeight.
-      previousWeight = currentWeight;
-      stable = false;//reset stability flag after publishing
+    previousWeight = currentWeight;
     }
-  }else{
-    //Reset stability if weighc changes
-    stable = false;
-  }
     scale.power_down();  // Put the ADC in sleep mode to save power
     delay(5000);  // Wait for 5 seconds
     scale.power_up(); 
