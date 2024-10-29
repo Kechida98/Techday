@@ -44,12 +44,64 @@ const long scaleInterval = 10000;
 void setup() {
   Serial.begin(115200);
 
+  //Initialize scale with debug prints
+  initializeScale();
+
+  connectToWIFI();  
+
+  connectToMQTT();
+
+  //Initialize ultrasonic sensor pins
+  pinMode(trigPin,OUTPUT);
+  pinMode(echoPin,INPUT);
+}
+
+void loop() {
+  //getCalibration();
+  unsigned long currentMillis = millis();
+
+  // Handle distance publishing
+  if(currentMillis - previousMillisUltra >= ultrasonicInterval){
+    previousMillisUltra = currentMillis;
+    handleDistanceMeasurment();
+
+  }
+
+  if(currentMillis - previousMillisScale >= scaleInterval){
+    previousMillisScale = currentMillis;
+    handleWeightMeasurment();
+
+  }
+  client.loop();
+}
+//Callobration är reading/vikten vi vet och reading det kommer vi få när vi gör Serial.println(reading);
+
+void getCalibration(){
+  //Raw reeading value because reading-tare/factor and we dont have factor,
+  //we will then get different raw reading values depending on the weight of the object
+  //that we can use for reading/object weight to get callobaration factor, to then put it in
+  //set_scale(callobarion factor) to convert data to human readable.
+  if(scale.is_ready()){
+    scale.set_scale();
+    Serial.println("Tare.. remove any weights from scale");
+    delay(5000);
+    scale.tare();
+    Serial.println("Tare done");
+    Serial.print("Place a known weight on the scale");
+    delay(5000);
+    long reading = scale.get_units(10);
+    Serial.print("Result: ");
+    Serial.println(reading);
+  }else{
+    Serial.println("HX711 NOT FOUND.");
+  }
+  delay(1000);
+}
+void initializeScale(){
   Serial.println("HX711 TEST_SCALE");
 
   Serial.println("Initializing the scale");
-  //RTC if the freq for esp is to fast.
-  //
-  //
+
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
   Serial.println("Before setting up the scale");
@@ -86,8 +138,9 @@ void setup() {
   Serial.println(scale.get_units(5),1);// print the average of 5 readings from the ADC minus tare weight, divided
             // by the SCALE parameter set with set_scale
 
-  Serial.println("Readings:");  
-
+  Serial.println("Readings:");
+}
+void connectToWIFI(){
   //Connection to wifi
   WiFi.begin(ssid,pass);
   while (WiFi.status() !=WL_CONNECTED){
@@ -95,8 +148,11 @@ void setup() {
     Serial.println("connecting to wifi...");
   }
    Serial.println("Connected to the Wi-fi network");
+  
+}
 
-   //Connection to mqtt broker
+void connectToMQTT(){
+  //Connection to mqtt broker
    client.setServer(mqtt_broker,mqtt_port);
    while(!client.connected()){
     String client_id = "";
@@ -108,39 +164,12 @@ void setup() {
       Serial.print("Failed to connect, state: ");
       Serial.print(client.state());
       delay(2000);
-    }
    }
-   pinMode(trigPin,OUTPUT);
-   pinMode(echoPin,INPUT);
-}
-void loop() {
-  //Raw reeading value because reading-tare/factor and we dont have factor,
-  //we will then get different raw reading values depending on the weight of the object
-  //that we can use for reading/object weight to get callobaration factor, to then put it in
-  //set_scale(callobarion factor) to convert data to human readable.
-  /*void loop() {
-  if(scale.is_ready()){
-    scale.set_scale();
-    Serial.println("Tare.. remove any weights from scale");
-    delay(5000);
-    scale.tare();
-    Serial.println("Tare done");
-    Serial.print("Place a known weight on the scale");
-    delay(5000);
-    long reading = scale.get_units(10);
-    Serial.print("Result: ");
-    Serial.println(reading);
-  }else{
-    Serial.println("HX711 NOT FOUND.");
   }
-  delay(1000);*/
-  unsigned long currentMillis = millis();
+ }
 
-  // Handle distance publishing
-  if(currentMillis - previousMillisUltra >= ultrasonicInterval){
-    previousMillisUltra = currentMillis;
-
-    // Send a trigger pulse to the ultrasonic sensor
+void handleDistanceMeasurment(){
+      // Send a trigger pulse to the ultrasonic sensor
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(trigPin, HIGH);
@@ -167,12 +196,13 @@ void loop() {
     } else {
         Serial.println("No echo detected (timeout).");
     }
-  }
 
-  if(currentMillis - previousMillisScale >= scaleInterval){
-    previousMillisScale = currentMillis;
+}
 
- // Get the current weight reading
+void handleWeightMeasurment(){
+  if(scale.is_ready()){
+
+    // Get the current weight reading
   float currentWeight = scale.get_units(40);  // Average of 40 readings for stability
 
    if (currentWeight < 0) {
@@ -182,22 +212,22 @@ void loop() {
   }
 
   // Check if currentweight minus previousweight is greater then threshold.
-  if (abs(currentWeight - previousWeight) > threshold) {
-    Serial.print("Change detected. Weight:");
-    Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
-    Serial.print(" g | Previous weight: "); 
-    Serial.print(previousWeight, 1);  // same as line 83
-    Serial.println(" g");
+  if  (abs(currentWeight - previousWeight) > threshold) {
+      Serial.print("Change detected. Weight:");
+      Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
+      Serial.print(" g | Previous weight: "); 
+      Serial.print(previousWeight, 1);  // same as line 83
+      Serial.println(" g");
 
-    client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
+      client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
 
     // Update the previous weight to currentWeight.
-    previousWeight = currentWeight;
-    }
+      previousWeight = currentWeight;
+    } 
+  } else{
+    Serial.println("HX711 not ready");
+  }
     scale.power_down();  // Put the ADC in sleep mode to save power
     delay(5000);  // Wait for 5 seconds
-    scale.power_up(); 
-  }
-  client.loop();
+    scale.power_up();    
 }
-//Callobration är reading/vikten vi vet och reading det kommer vi få när vi gör Serial.println(reading);
