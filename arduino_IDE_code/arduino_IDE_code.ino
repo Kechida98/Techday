@@ -74,7 +74,7 @@ void loop() {
   }
   client.loop();
 }
-//Callobration är reading/vikten vi vet och reading det kommer vi få när vi gör Serial.println(reading);
+//Calibration is the reading divided by the weight we know and reading what we eill get when we do Serial.println(reading);
 
 void getCalibration(){
   //Raw reeading value because reading-tare/factor and we dont have factor,
@@ -118,7 +118,7 @@ void initializeScale(){
   Serial.println(scale.get_units(5),1);// print the average of 5 readings from the ADC minus tare weight (not set) divided
             // by the SCALE parameter (not set yet)
 
-  scale.set_scale(calibration);//change this callabration to ur own value and callabariation = reading/weight.
+  scale.set_scale(calibration);//change this calibration to ur own value and callabariation = reading/weight.
   
   delay(1000);
   scale.tare();// reset the scale to 0
@@ -141,7 +141,7 @@ void initializeScale(){
   Serial.println("Readings:");
 }
 void connectToWIFI(){
-  //Connection to wifi
+  //Connect to wifi
   WiFi.begin(ssid,pass);
   while (WiFi.status() !=WL_CONNECTED){
     delay(1000);
@@ -152,7 +152,7 @@ void connectToWIFI(){
 }
 
 void connectToMQTT(){
-  //Connection to mqtt broker
+  //Connect to mqtt broker
    client.setServer(mqtt_broker,mqtt_port);
    while(!client.connected()){
     String client_id = "";
@@ -216,7 +216,7 @@ void handleWeightMeasurment(){
       Serial.print("Change detected. Weight:");
       Serial.print(currentWeight, 1);  // Print current weight with 1 decimal
       Serial.print(" g | Previous weight: "); 
-      Serial.print(previousWeight, 1);  // same as line 83
+      Serial.print(previousWeight, 1);
       Serial.println(" g");
 
       client.publish(mqtt_topic_weight,String(currentWeight,1).c_str());
