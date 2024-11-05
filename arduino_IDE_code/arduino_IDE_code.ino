@@ -1,15 +1,13 @@
-#include "HX711.h"//This is the libary we are using for all our funtions and they are
-                  //explained more in libary.
+#include "HX711.h"
 #include "soc/rtc.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
 
+//Wi-Fi config
 const char *ssid = "TN-WH2983";
 const char *pass = "SyufjufDeub5";
 
-const int LOADCELL_DOUT_PIN = 4;
-const int LOADCELL_SCK_PIN = 19;
-
+//MQTT config
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
 const char *mqtt_topic_weight = "esp32/scale";
@@ -20,26 +18,25 @@ const char *mqtt_password = "123abc";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-HX711 scale;
-
+//HX-711 Scale
+const int LOADCELL_DOUT_PIN = 4;
+const int LOADCELL_SCK_PIN = 19;
 float previousWeight = 0;
 float threshold = 1.0;
 float calibration = 1100.38987;
+unsigned long previousMillisScale = 0;
+const long scaleInterval = 10000;
 
+//HC-SR04 UltraSonic sensor
+#define SOUND_SPEED 0.034
 const int trigPin = 18;
 const int echoPin = 5;
-
-#define SOUND_SPEED 0.034
-
 long duration;
 float distanceCm;
 float previousDistance = 0;
 float distanceThreshold = 1.0;
-
-unsigned long previousMillisScale = 0;
 unsigned long previousMillisUltra = 0;
 const long ultrasonicInterval = 1000;
-const long scaleInterval = 10000;
 
 void setup() {
   Serial.begin(115200);
@@ -60,13 +57,13 @@ void loop() {
   //getCalibration();
   unsigned long currentMillis = millis();
 
-  // Handle distance publishing
+  // Handle distance publishing from the HC-SR04 sensor
   if(currentMillis - previousMillisUltra >= ultrasonicInterval){
     previousMillisUltra = currentMillis;
     handleDistanceMeasurment();
 
   }
-
+  //Handle distance publishing from the HX-711 load cell
   if(currentMillis - previousMillisScale >= scaleInterval){
     previousMillisScale = currentMillis;
     handleWeightMeasurment();
@@ -74,13 +71,13 @@ void loop() {
   }
   client.loop();
 }
-//Calibration is the reading divided by the weight we know and reading what we eill get when we do Serial.println(reading);
 
+//Calibration is the reading divided by the weight we know and reading what we eill get when we do Serial.println(reading);
 void getCalibration(){
   //Raw reeading value because reading-tare/factor and we dont have factor,
   //we will then get different raw reading values depending on the weight of the object
   //that we can use for reading/object weight to get callobaration factor, to then put it in
-  //set_scale(callobarion factor) to convert data to human readable.
+  //set_scale(calibration factor) to convert data to human readable.
   if(scale.is_ready()){
     scale.set_scale();
     Serial.println("Tare.. remove any weights from scale");
@@ -97,6 +94,7 @@ void getCalibration(){
   }
   delay(1000);
 }
+
 void initializeScale(){
   Serial.println("HX711 TEST_SCALE");
 
@@ -140,6 +138,7 @@ void initializeScale(){
 
   Serial.println("Readings:");
 }
+
 void connectToWIFI(){
   //Connect to wifi
   WiFi.begin(ssid,pass);
