@@ -3,9 +3,11 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
+//unittest testa
+
 // Connection settings (Wi-Fi and MQTT)
-const char *ssid = "TN-WH2983";
-const char *pass = "SyufjufDeub5";
+const char *ssid = "Arduino";
+const char *pass = "";
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
 const char *mqtt_topic_weight = "esp32/scale";
@@ -23,7 +25,7 @@ HX711 scale;
 float totalWeight=0;// In the bin
 float previousWeight = 0;
 float threshold = 1.0;
-float calibration = 1100.38987;
+float calibration = 1127.227;
 
 // Ultrasonic Sensor Configurations
 const int trigPin = 18;
@@ -71,7 +73,7 @@ void loop() {
     handleWeightMeasurement();
   }
 
-  //Loop for connection
+  //Loop for connection*/
   client.loop();
 }
 
@@ -105,6 +107,7 @@ void connectToMQTT(){
 
 // Ultrasonic Sensor Measurment and Publishing function
 void handleDistanceMeasurement(){
+
     // Send a trigger pulse to the ultrasonic sensor
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
@@ -120,6 +123,11 @@ void handleDistanceMeasurement(){
     
     if (duration > 0) { // Only caluculate distance if duration is not zero or less
         distanceCm = duration * SOUND_SPEED / 2;
+
+        if (distanceCm > 8.0){
+          Serial.println("Distance reading is too high; ignoring.");
+          return;
+        }
         
         if (abs(distanceCm - previousDistance) > distanceThreshold) {
             Serial.print("Distance change detected. Distance (cm): ");
@@ -141,7 +149,7 @@ void handleWeightMeasurement(){
 
   if(scale.is_ready()){
     // Get the current weight reading
-    float currentWeight = scale.get_units(5);  // Average of 5 readings for stability
+    float currentWeight = scale.get_units(10);  // Average of 5 readings for stability
 
     if(currentWeight < 0) {
     currentWeight = 0;
