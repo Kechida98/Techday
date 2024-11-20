@@ -6,7 +6,7 @@
 //unittest testa
 
 // Connection settings (Wi-Fi and MQTT)
-const char *ssid = "Arduino";
+const char *ssid = "";
 const char *pass = "";
 const char *mqtt_broker = "broker.emqx.io";
 const int mqtt_port = 1883;
@@ -19,17 +19,17 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Load Cell HX711 Configurations
-const int LOADCELL_DOUT_PIN = 4;
+const int LOADCELL_DOUT_PIN = 18;
 const int LOADCELL_SCK_PIN = 19;
 HX711 scale;
 float totalWeight=0;// In the bin
 float previousWeight = 0;
 float threshold = 1.0;
-float calibration = 1127.227;
+float calibration = 1382;
 
 // Ultrasonic Sensor Configurations
-const int trigPin = 18;
-const int echoPin = 5;
+const int trigPin = 5;
+const int echoPin = 4;
 #define SOUND_SPEED 0.034
 long duration;
 float distanceCm;
